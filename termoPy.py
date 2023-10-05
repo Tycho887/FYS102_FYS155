@@ -119,7 +119,7 @@ class Adiabatic(IdealGas):
         return self.T1*(self.P1/P2)**((self.gamma-1)/self.gamma)
     
     def calculate_work_done_by(self):
-        self.work_done_by = self.Cv * self.n * R * (self.temperature[-1]-self.temperature[0])
+        self.work_done_by = -self.Cv * self.n * R * (self.temperature[-1]-self.temperature[0])
         return self.work_done_by
     
     def generate_data_from_dV(self,V2,show=False, steps = k):
