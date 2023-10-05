@@ -152,7 +152,6 @@ class Adiabatic(IdealGas):
     def __init__(self,n,gamma,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
         super().__init__(n,P1=P1,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
         self.gamma = gamma
-        self.heat_absorbed = lambda: 0
         self.title = "Adiabatisk prosess"
         self._find_missing()
 
@@ -172,6 +171,10 @@ class Adiabatic(IdealGas):
     def T2_from_P2(self,P2):
         assert self.P1 != None and self.T1 != None, "P1,T1 må være definert"
         return self.T1*(self.P1/P2)**((self.gamma-1)/self.gamma)
+    
+    def calculate_heat_absorbed(self):
+        self.heat_absorbed = 0
+        return self.heat_absorbed
     
     def calculate_work_done_by(self):
         self.work_done_by = -self.Cv * self.n * R * (self.temperature[-1]-self.temperature[0])
