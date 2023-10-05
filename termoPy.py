@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 atm = 101300; L = 0.001; R = 8.314; k = 10000
 
 class IdealGas:
-    def __init__(self,n=None,P1=None,V1=None,T1=None,monatomic=False,Diatomic=False):
+    def __init__(self,n=None,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
         """
         n: number of moles
         gamma: ratio of specific heats
@@ -139,4 +139,20 @@ class Adiabatic(IdealGas):
         return self.volume,self.pressure
 
 
-# Ny test
+mol = IdealGas(P1=1*atm,V1=50*L,T1=273).n
+
+# Normaltilstand
+
+P  = 1.0 * atm
+T = 273
+V1 = 50*L
+V2 = 10*L
+k = 100000
+
+isoterm_prosess    = Isothermal(n=mol, T = T, V1 = V1, P1 = P)
+adiabatisk_prosess = Adiabatic(n=mol, T1 = T, V1 = V1, P1 = P,gamma = 7/5,diatomic=True)
+
+isoterm_prosess.generate_data_from_dV(V2,steps=k)
+adiabatisk_prosess.generate_data_from_dV(V2,steps=k)
+
+print(adiabatisk_prosess.calculate_work_done_by())
