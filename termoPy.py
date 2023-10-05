@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 atm = 101300; L = 0.001; R = 8.314; k = 10000
 
 class IdealGas:
-    def __init__(self,n=None,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
+    def __init__(self,n=None,P1=None,V1=None,T1=None,monatomic=False,diatomic=False,Cv=None):
         """
         n: number of moles
         gamma: ratio of specific heats
@@ -18,13 +18,15 @@ class IdealGas:
         self.T1 = T1
         if monatomic:
             self.Cv = 3/2
-        if diatomic:
+        elif diatomic:
             self.Cv = 5/2
+        else:
+            self.Cv = None
         
-        self.volume = np.array([])
-        self.pressure = np.array([])
-        self.temperature = np.array([])
-        self.internal_energy = np.array([])
+        self.volume = None
+        self.pressure = None
+        self.temperature = None
+        self.internal_energy = None
         self.work_done_by = 0
         self.heat_absorbed = 0
         self.title = ""
@@ -39,6 +41,14 @@ class IdealGas:
         return P*V/(self.n*R)
     def get_n(self,P,V,T):
         return P*V/(R*T)
+    
+    def entropy_change(self,Cv=None):
+        assert self.volume != None and self.pressure != None and self.temperature != None, "Volum, trykk og temperatur må være definert"
+        if Cv != None:
+            self.Cv = Cv
+        else:
+            assert self.Cv != None, "Cv må være definert"
+        return self.n*R*np.log(self.V2/self.V1)+self.Cv*np.log(self.T2/self.T1)
     
     def _plot_PV(self):
         plt.plot(self.volume,self.pressure)
@@ -60,12 +70,12 @@ class IdealGas:
             self.n = self.get_n(self.P1,self.V1,self.T1)
 
 class Isothermal(IdealGas):
-    def __init__(self,T,n,V1=None,P1=None):
+    def __init__(self,n=None,T1=None,V1=None,P1=None):
         """
         n: number of moles
         T: temperature (K)
         """
-        super().__init__(n,P1=P1,V1=V1,T1=T)
+        super().__init__(n,P1=P1,V1=V1,T1=T1)
         self.title = "Isotermisk prosess"
         self._find_missing()
 
@@ -89,8 +99,8 @@ class Isothermal(IdealGas):
         return self.volume,self.pressure
 
 class Isobaric(IdealGas):
-    def __init__(self,n,P,T1=None,V1=None,monatomic=False,diatomic=False):
-        super().__init__(n,P1=P,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
+    def __init__(self,n=None,P1=None,T1=None,V1=None,monatomic=False,diatomic=False):
+        super().__init__(n,P1=P1,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
         self.title = "Isobar prosess"
         self._find_missing()
     
@@ -119,8 +129,8 @@ class Isobaric(IdealGas):
         return self.volume,self.pressure
 
 class Isochoric(IdealGas):
-    def __init__(self,n,V,T1=None,P1=None):
-        super().__init__(n,P1=P1,V1=V,T1=T1)
+    def __init__(self,n=None,V1=None,T1=None,P1=None):
+        super().__init__(n,P1=P1,V1=V1,T1=T1)
         self.title = "Isokor prosess"
         self._find_missing()
     
@@ -149,12 +159,11 @@ class Isochoric(IdealGas):
         return self.volume,self.pressure
     
 class Adiabatic(IdealGas):
-    def __init__(self,n,gamma,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
+    def __init__(self,gamma,n=None,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
         super().__init__(n,P1=P1,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
         self.gamma = gamma
         self.title = "Adiabatisk prosess"
         self._find_missing()
-
     
     def P2_from_V2(self,V2):
         assert self.P1 != None and self.V1 != None, "P1,V1 må være definert"
@@ -171,6 +180,14 @@ class Adiabatic(IdealGas):
     def T2_from_P2(self,P2):
         assert self.P1 != None and self.T1 != None, "P1,T1 må være definert"
         return self.T1*(self.P1/P2)**((self.gamma-1)/self.gamma)
+    
+    def P2_from_T2(self,T2):
+        assert self.T1 != None and self.P1 != None, "T1,P1 må være definert"
+        return self.P1*(self.T1/T2)**(self.gamma/(self.gamma-1))
+    
+    def V2_from_T2(self,T2):
+        assert self.T1 != None and self.V1 != None, "T1,V1 må være definert"
+        return self.V1*(self.T1/T2)**(1/(self.gamma-1))
     
     def calculate_heat_absorbed(self):
         self.heat_absorbed = 0
@@ -196,7 +213,16 @@ class Adiabatic(IdealGas):
             self._plot_PV()
         return self.volume,self.pressure
     
-
+    def generate_data_from_dT(self,T2,show=False, steps = k):
+        self.temperature = np.linspace(self.T1,T2,steps)
+        self.volume = self.V2_from_T2(self.temperature)
+        self.pressure = self.P2_from_T2(self.temperature)
+        if show:
+            self._plot_PV()
+        return self.volume,self.pressure
     
 
     
+isokor_prosess = Isothermal(n=5,T1=273,P1=1*atm)
+print(isokor_prosess.V1)
+isokor_prosess.generate_data_from_dV(V2=2,show=True)
