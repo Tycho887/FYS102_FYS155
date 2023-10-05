@@ -66,9 +66,6 @@ class Isothermal(IdealGas):
         T: temperature (K)
         """
         super().__init__(n,P1=P1,V1=V1,T1=T)
-        self.T1 = T
-        self.V1 = V1
-        self.P1 = P1
         self.title = "Isotermisk prosess"
         self._find_missing()
 
@@ -91,7 +88,68 @@ class Isothermal(IdealGas):
             self._plot_PV()
         return self.volume,self.pressure
 
+class Isobaric(IdealGas):
+    def __init__(self,n,P,T1=None,V1=None,monatomic=False,diatomic=False):
+        super().__init__(n,P1=P,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
+        self.P1 = P; self.V1 = V1; self.T1 = T1
+        self.title = "Isobar prosess"
+        self._find_missing()
+    
+    def calculate_work_done_by(self):
+        self.work_done_by = self.P1*(self.volume[-1]-self.volume[0])
+        return self.work_done_by
+    
+    def calculate_heat_absorbed(self):
+        self.heat_absorbed = self.n*(self.Cv+1)*R*(self.temperature[-1]-self.temperature[0])
+        return self.heat_absorbed
+    
+    def generate_data_from_dV(self,V2,show=False, steps = k):
+        self.volume = np.linspace(self.V1,V2,steps)
+        self.temperature = self.T(self.P1,self.volume)
+        self.pressure = self.P1*np.ones(len(self.volume))
+        if show:
+            self._plot_PV()
+        return self.volume,self.pressure
+    
+    def generate_data_from_dT(self,T2,show=False, steps = k):
+        self.temperature = np.linspace(self.T1,T2,steps)
+        self.volume = self.V(self.P1,self.temperature)
+        self.pressure = self.P1*np.ones(len(self.temperature))
+        if show:
+            self._plot_PV()
+        return self.volume,self.pressure
 
+class Isochoric(IdealGas):
+    def __init__(self,n,V,T1=None,P1=None):
+        super().__init__(n,P1=P1,V1=V,T1=T1)
+        self.P1 = P1; self.V1 = V; self.T1 = T1
+        self.title = "Isokor prosess"
+        self._find_missing()
+    
+    def calculate_work_done_by(self):
+        self.work_done_by = 0
+        return self.work_done_by
+    
+    def calculate_heat_absorbed(self):
+        self.heat_absorbed = self.n*self.Cv*R*(self.temperature[-1]-self.temperature[0])
+        return self.heat_absorbed
+    
+    def generate_data_from_dT(self,T2,show=False, steps = k):
+        self.temperature = np.linspace(self.T1,T2,steps)
+        self.pressure = self.P(self.V1,self.temperature)
+        self.volume = self.V1*np.ones(len(self.temperature))
+        if show:
+            self._plot_PV()
+        return self.volume,self.pressure
+    
+    def generate_data_from_dP(self,P2,show=False, steps = k):
+        self.pressure = np.linspace(self.P1,P2,steps)
+        self.temperature = self.T(self.pressure,self.V1)
+        self.volume = self.V1*np.ones(len(self.pressure))
+        if show:
+            self._plot_PV()
+        return self.volume,self.pressure
+    
 class Adiabatic(IdealGas):
     def __init__(self,n,gamma,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
         super().__init__(n,P1=P1,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
@@ -137,22 +195,8 @@ class Adiabatic(IdealGas):
         if show:
             self._plot_PV()
         return self.volume,self.pressure
+    
 
+    
 
-mol = IdealGas(P1=1*atm,V1=50*L,T1=273).n
-
-# Normaltilstand
-
-P  = 1.0 * atm
-T = 273
-V1 = 50*L
-V2 = 10*L
-k = 100000
-
-isoterm_prosess    = Isothermal(n=mol, T = T, V1 = V1, P1 = P)
-adiabatisk_prosess = Adiabatic(n=mol, T1 = T, V1 = V1, P1 = P,gamma = 7/5,diatomic=True)
-
-isoterm_prosess.generate_data_from_dV(V2,steps=k)
-adiabatisk_prosess.generate_data_from_dV(V2,steps=k)
-
-print(adiabatisk_prosess.calculate_work_done_by())
+    
