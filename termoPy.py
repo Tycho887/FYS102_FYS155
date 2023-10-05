@@ -56,6 +56,7 @@ class IdealGas:
         plt.ylabel("Trykk [Pa]")
         plt.grid()
         plt.title(self.title)
+        plt.savefig(f"data/{self.title}_{self.mol}.png")
         plt.show()
 
     def _find_missing(self):
