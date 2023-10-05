@@ -87,6 +87,7 @@ class Isothermal(IdealGas):
     def generate_data_from_dV(self,V2,show=False,steps=k):
         self.volume = np.linspace(self.V1,V2,steps)
         self.pressure = self.P(self.volume,self.T1)
+        self.temperature = self.T1*np.ones(len(self.volume))
         if show:
             self._plot_PV()
         return self.volume,self.pressure
@@ -94,6 +95,7 @@ class Isothermal(IdealGas):
     def generate_data_from_dP(self,P2,show=False,steps=k):
         self.pressure = np.linspace(self.P1,P2,steps)
         self.volume = self.V(self.pressure,self.T1)
+        self.temperature = self.T1*np.ones(len(self.pressure))
         if show:
             self._plot_PV()
         return self.volume,self.pressure
