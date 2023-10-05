@@ -91,7 +91,6 @@ class Isothermal(IdealGas):
 class Isobaric(IdealGas):
     def __init__(self,n,P,T1=None,V1=None,monatomic=False,diatomic=False):
         super().__init__(n,P1=P,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
-        self.P1 = P; self.V1 = V1; self.T1 = T1
         self.title = "Isobar prosess"
         self._find_missing()
     
@@ -122,7 +121,6 @@ class Isobaric(IdealGas):
 class Isochoric(IdealGas):
     def __init__(self,n,V,T1=None,P1=None):
         super().__init__(n,P1=P1,V1=V,T1=T1)
-        self.P1 = P1; self.V1 = V; self.T1 = T1
         self.title = "Isokor prosess"
         self._find_missing()
     
@@ -153,9 +151,8 @@ class Isochoric(IdealGas):
 class Adiabatic(IdealGas):
     def __init__(self,n,gamma,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
         super().__init__(n,P1=P1,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
-        self.P1 = P1; self.V1 = V1; self.T1 = T1
         self.gamma = gamma
-        self.heat_absorbed = 0
+        self.heat_absorbed = lambda: 0
         self.title = "Adiabatisk prosess"
         self._find_missing()
 
