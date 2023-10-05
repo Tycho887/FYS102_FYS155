@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 atm = 101300; L = 0.001; R = 8.314; k = 10000
 
 class IdealGas:
-    def __init__(self,n=None,P1=None,V1=None,T1=None):
+    def __init__(self,n=None,P1=None,V1=None,T1=None,monatomic=False,Diatomic=False):
         """
         n: number of moles
         gamma: ratio of specific heats
@@ -16,9 +16,11 @@ class IdealGas:
         self.P1 = P1
         self.V1 = V1
         self.T1 = T1
+        if monatomic:
+            self.Cv = 3/2
+        if diatomic:
+            self.Cv = 5/2
         
-
-
         self.volume = np.array([])
         self.pressure = np.array([])
         self.temperature = np.array([])
@@ -91,8 +93,8 @@ class Isothermal(IdealGas):
 
 
 class Adiabatic(IdealGas):
-    def __init__(self,n,gamma,P1=None,V1=None,T1=None):
-        super().__init__(n,P1=P1,V1=V1,T1=T1)
+    def __init__(self,n,gamma,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
+        super().__init__(n,P1=P1,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
         self.P1 = P1; self.V1 = V1; self.T1 = T1
         self.gamma = gamma
         self.heat_absorbed = 0
@@ -117,7 +119,7 @@ class Adiabatic(IdealGas):
         return self.T1*(self.P1/P2)**((self.gamma-1)/self.gamma)
     
     def calculate_work_done_by(self):
-        self.work_done_by = self.n*R*self.T1*np.log(self.volume[-1]/self.volume[0])
+        self.work_done_by = self.Cv * self.n * R * (self.temperature[-1]-self.temperature[0])
         return self.work_done_by
     
     def generate_data_from_dV(self,V2,show=False, steps = k):
