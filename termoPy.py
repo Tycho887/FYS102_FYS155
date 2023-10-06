@@ -56,7 +56,7 @@ class IdealGas:
         plt.ylabel("Trykk [Pa]")
         plt.grid()
         plt.title(self.title)
-        plt.savefig(f"data/{self.title}_{self.mol}.png")
+        plt.savefig(f"data/{self.title}_{self.n}.png")
         plt.show()
 
     def _find_missing(self):
@@ -224,8 +224,3 @@ class Adiabatic(IdealGas):
             self._plot_PV()
         return self.volume,self.pressure
     
-
-    
-isokor_prosess = Isothermal(n=5,T1=273,P1=1*atm)
-print(isokor_prosess.V1)
-isokor_prosess.generate_data_from_dV(V2=2,show=True)
