@@ -60,7 +60,7 @@ class IdealGas:
         plt.show()
 
     def _find_missing(self):
-        assert self.P1 != None or self.V1 != None or self.T1 != None or self.n != None, "En av P1,V1 eller T1 må være definert"
+        assert (self.P1 != None + self.V1 != None + self.T1 != None + self.n != None) > 2, "Tre av P1,V1,T1 eller n må være definert"
         if self.P1 == None:
             self.P1 = self.P(self.V1,self.T1)
         elif self.V1 == None:
