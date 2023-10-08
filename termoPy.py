@@ -24,10 +24,13 @@ class IdealGas:
 
         if monatomic:
             self.Cv = 3/2
+            self.gamma = 5/3
         elif diatomic:
             self.Cv = 5/2
+            self.gamma = 7/5
         elif Cv != None:
             self.Cv = Cv
+            self.gamma = Cv+1
         else:
             self.Cv = None
         
@@ -37,6 +40,7 @@ class IdealGas:
 
         self.internal_energy = None
         self.entropy = None
+
 
         self.work_done_by = 0
         self.heat_absorbed = 0
@@ -52,6 +56,9 @@ class IdealGas:
 
         if not dummy:
             self._find_missing()
+
+        self.consistency = None
+
     
     def P(self,V,T):
         return self.n*R*T/V
@@ -61,6 +68,9 @@ class IdealGas:
         return P*V/(self.n*R)
     def get_n(self,P,V,T):
         return P*V/(R*T)
+    
+    def _is_ideal(self):
+        self.consistency = self.pressure*self.volume-(self.n*R*self.temperature)
     
     def _generate_internal_energy(self):
         self.internal_energy = self.Cv*self.n*R*self.temperature
@@ -88,12 +98,14 @@ class IdealGas:
     def _generate_extra_data(self,show):
         self._generate_internal_energy()
         self._generate_entropy()
+        self._is_ideal()
         if self.molar_mass != None:
             self._generate_rms_speed()
             self.generate_particle_density()
             self._generate_atomic_mass()
             self._generate_mean_free_path()
             self._generate_mean_free_time()
+            
 
         if show: self._plot_PV()
 
@@ -125,12 +137,12 @@ class IdealGas:
         elif self.n == None:
             self.n = self.get_n(self.P1,self.V1,self.T1)
 class Isothermal(IdealGas):
-    def __init__(self,n=None,T1=None,V1=None,P1=None):
+    def __init__(self,n=None,T1=None,V1=None,P1=None,monatomic=False,diatomic=False):
         """
         n: number of moles
         T: temperature (K)
         """
-        super().__init__(n,P1=P1,V1=V1,T1=T1)
+        super().__init__(n,P1=P1,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
         self.title = "Isotermisk prosess"
         self._find_missing()
 
@@ -184,8 +196,8 @@ class Isobaric(IdealGas):
         self._generate_extra_data(show)
         return self.volume,self.pressure
 class Isochoric(IdealGas):
-    def __init__(self,n=None,V1=None,T1=None,P1=None):
-        super().__init__(n,P1=P1,V1=V1,T1=T1)
+    def __init__(self,n=None,V1=None,T1=None,P1=None,monatomic=False,diatomic=False):
+        super().__init__(n,P1=P1,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
         self.title = "Isokor prosess"
         self._find_missing()
     
@@ -211,9 +223,10 @@ class Isochoric(IdealGas):
         self._generate_extra_data(show)
         return self.volume,self.pressure
 class Adiabatic(IdealGas):
-    def __init__(self,gamma,n=None,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
+    def __init__(self,gamma=None,n=None,P1=None,V1=None,T1=None,monatomic=False,diatomic=False):
         super().__init__(n,P1=P1,V1=V1,T1=T1,monatomic=monatomic,diatomic=diatomic)
-        self.gamma = gamma
+        if gamma != None:
+            self.gamma = gamma
         self.title = "Adiabatisk prosess"
         self._find_missing()
     
@@ -231,11 +244,11 @@ class Adiabatic(IdealGas):
     
     def T2_from_P2(self,P2):
         assert self.P1 != None and self.T1 != None, "P1,T1 må være definert"
-        return self.T1*(self.P1/P2)**((self.gamma-1)/self.gamma)
+        return self.T1*(P2/self.P1)**((self.gamma-1)/self.gamma)
     
     def P2_from_T2(self,T2):
         assert self.T1 != None and self.P1 != None, "T1,P1 må være definert"
-        return self.P1*(self.T1/T2)**(self.gamma/(self.gamma-1))
+        return self.P1*(T2/self.T1)**(self.gamma/(self.gamma-1))
     
     def V2_from_T2(self,T2):
         assert self.T1 != None and self.V1 != None, "T1,V1 må være definert"
@@ -271,7 +284,7 @@ class Adiabatic(IdealGas):
         return self.volume,self.pressure
     
 class Cycle:
-    def __init__(self,process_types,system_states,monatomic=False,diatomic=False,Cv=None,specific_heat=None,molar_mass=None,diameter=1e-10):
+    def __init__(self,process_types,system_states,monatomic=False,diatomic=False,Cv=None,specific_heat=None,molar_mass=None,diameter=1e-10,gamma=None):
         
         self.system_states = system_states
         self.process_types = process_types
@@ -284,6 +297,7 @@ class Cycle:
         self.diatomic = diatomic
 
         self.Cv = Cv
+        self.gamma = gamma
         self.specific_heat = specific_heat
         self.molar_mass = molar_mass
         self.diameter = diameter
@@ -316,7 +330,7 @@ class Cycle:
     def define_processes(self,process_type,system_state):
         
         if process_type == "Isothermal":
-            process = Isothermal(n=system_state["n"],T1=system_state["T"],V1=system_state["V"],P1=system_state["P"])
+            process = Isothermal(n=system_state["n"],T1=system_state["T"],V1=system_state["V"],P1=system_state["P"],monatomic=self.monatomic,diatomic=self.diatomic)
         elif process_type == "Isobaric":
             process = Isobaric(n=system_state["n"],T1=system_state["T"],V1=system_state["V"],P1=system_state["P"],monatomic=self.monatomic,diatomic=self.diatomic)
         elif process_type == "Isochoric":
