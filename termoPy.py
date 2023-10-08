@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 atm = 101300; L = 0.001; R = 8.314; k = 1.38064852e-23 # Boltzmanns konstant
 K = 10000
@@ -59,13 +60,15 @@ class IdealGas:
 
         self.consistency = None
 
-    
     def P(self,V,T):
         return self.n*R*T/V
+    
     def V(self,P,T):
         return self.n*R*T/P
+    
     def T(self,P,V):
         return P*V/(self.n*R)
+    
     def get_n(self,P,V,T):
         return P*V/(R*T)
     
@@ -74,10 +77,31 @@ class IdealGas:
     
     def _generate_internal_energy(self):
         self.internal_energy = self.Cv*self.n*R*self.temperature
-
+    
     def _generate_entropy(self):
         self.entropy = self.n*R*np.log(self.volume)+self.Cv*np.log(self.temperature)
 
+    def generate_data_from_dV(self,V2,show=False,steps=K):
+        self.volume      = self.V1*np.ones(steps)
+        self.pressure    = self.P1*np.ones(steps)
+        self.temperature = self.T1*np.ones(steps)
+        self._generate_extra_data(show)
+        return self.volume,self.pressure
+    
+    def generate_data_from_dP(self,P2,show=False,steps=K):
+        self.volume      = self.V1*np.ones(steps)
+        self.pressure    = self.P1*np.ones(steps)
+        self.temperature = self.T1*np.ones(steps)
+        self._generate_extra_data(show)
+        return self.volume,self.pressure
+    
+    def generate_data_from_dT(self,T2=None,show=False,steps=K):
+        self.volume      = self.V1*np.ones(steps)
+        self.pressure    = self.P1*np.ones(steps)
+        self.temperature = self.T1*np.ones(steps)
+        self._generate_extra_data(show)
+        return self.volume,self.pressure
+    
     def _generate_rms_speed(self):
         self.rms_speed = np.sqrt(3*self.temperature*R/self.molar_mass)
 
@@ -136,6 +160,9 @@ class IdealGas:
             self.T1 = self.T(self.P1,self.V1)
         elif self.n == None:
             self.n = self.get_n(self.P1,self.V1,self.T1)
+    
+    def __str__(self): # the __str__ method is used when printing the object
+        return f"n: {self.n}\nP1: {self.P1}\nV1: {self.V1}\nT1: {self.T1}\nCv: {self.Cv}\ngamma: {self.gamma}\n"
 class Isothermal(IdealGas):
     def __init__(self,n=None,T1=None,V1=None,P1=None,monatomic=False,diatomic=False):
         """
@@ -384,7 +411,6 @@ class Cycle:
     
     def _calculate_efficiency(self):
         self.efficiency = self.work_done_by/self.heat_absorbed
-
 class Carnot(Cycle):
     def __init__(self,system_states,monatomic=False,diatomic=False,Cv=None,specific_heat=None,molar_mass=None,diameter=1e-10):
         super().__init__(system_states=system_states,
@@ -399,3 +425,39 @@ class Carnot(Cycle):
         self.generate_processes()
 class Otto(Cycle): 
     pass
+
+
+def __chceck_consisency(process,type):
+#        if process.title == "Adiabatisk prosess":
+        assert (np.mean(process.consistency)) < 1e-10, "Consistency is not zero"
+        print(f"{type} method is consistent. mean consistency: {np.mean(process.consistency):.2e}")
+
+def __test_processes(processes):
+    for process in processes:
+        print("Testing",process.title)
+        try:
+            process.generate_data_from_dV(process.V1*10)
+            __chceck_consisency(process,"+dV")
+            process.generate_data_from_dV(process.volume[-1]*0.1)
+            __chceck_consisency(process,"-dV")
+        except: assert False, f"The from_dV method does not work as intended on {process.title}"
+        try:
+            process.generate_data_from_dP(process.P1*10)
+            __chceck_consisency(process,"+dP")
+            process.generate_data_from_dP(process.pressure[-1]*0.1)
+            __chceck_consisency(process,"-dP")
+        except: assert False, f"The from_dP method does not work as intended on {process.title}"
+        try: 
+            process.generate_data_from_dT(process.T1*10)
+            __chceck_consisency(process,"+dT")
+            process.generate_data_from_dT(process.temperature[-1]*0.1)
+            __chceck_consisency(process,"-dT")
+        except: assert False, f"The from_dT method does not work as intended on {process.title}"
+            
+if __name__ == "__main__":
+    IS = {"P":1*atm,"V":0.001,"T":300,"n":1}
+    processes = [Isothermal(n=IS["n"],V1=IS["V"],P1=IS["P"],monatomic=True),
+                 Isochoric(n=IS["n"],T1=IS["T"],P1=IS["P"],monatomic=True),
+                 Isobaric(n=IS["n"],V1=IS["V"],T1=IS["T"],monatomic=True),
+                 Adiabatic(n=IS["n"],V1=IS["V"],T1=IS["T"],monatomic=True)]
+    __test_processes(processes)
