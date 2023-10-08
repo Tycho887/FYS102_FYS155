@@ -42,8 +42,12 @@ V3 = adiabatic_expansion.volume[-1]
 P3 = adiabatic_expansion.pressure[-1]
 T3 = adiabatic_expansion.temperature[-1]
 
+finding_carnot_values = TP.Adiabatic(n=n,P1=P1,T1=T_high,diatomic=True)
+finding_carnot_values.generate_data_from_dP(0.5*P1)
+found_V3 = finding_carnot_values.volume[-1]
+
 isothermal_compression = TP.Isothermal(n=n,P1=P3,T1=T3,diatomic=True)
-isothermal_compression.generate_data_from_dP(P1*0.5)
+isothermal_compression.generate_data_from_dV(found_V3)
 
 V4 = isothermal_compression.volume[-1]
 P4 = isothermal_compression.pressure[-1]
@@ -51,6 +55,10 @@ T4 = isothermal_compression.temperature[-1]
 
 adiabatic_compression = TP.Adiabatic(n=n,P1=P4,T1=T4,diatomic=True)
 adiabatic_compression.generate_data_from_dT(T_high)
+
+
+
+
 
 
 fig = plt.figure()
