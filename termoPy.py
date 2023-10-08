@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
+# we need to know what time it is
+import datetime
 
 atm = 101300; L = 0.001; R = 8.314; k = 1.38064852e-23 # Boltzmanns konstant
 K = 10000
@@ -60,6 +62,20 @@ class IdealGas:
 
         self.consistency = None
 
+    def _generate_extra_data(self,show):
+        self.internal_energy = self.Cv*self.n*R*self.temperature
+        self.entropy = self.n*R*np.log(self.volume)+self.Cv*np.log(self.temperature)
+        self.consistency = self.pressure*self.volume-(self.n*R*self.temperature)
+        
+        if self.molar_mass != None:
+            self.rms_speed = np.sqrt(3*self.temperature*R/self.molar_mass)
+            self.nv = self.n*6.022e23/self.volume
+            self.atomic_mass = self.molar_mass/6.022e23
+            self.mean_free_path = 1/(np.sqrt(2)*np.pi*self.diameter**2*self.nv)
+            self.mean_free_time = self.mean_free_path/self.rms_speed
+        
+        if show: self.plot_PV()
+
     def P(self,V,T):
         return self.n*R*T/V
     
@@ -72,15 +88,6 @@ class IdealGas:
     def get_n(self,P,V,T):
         return P*V/(R*T)
     
-    def _is_ideal(self):
-        self.consistency = self.pressure*self.volume-(self.n*R*self.temperature)
-    
-    def _generate_internal_energy(self):
-        self.internal_energy = self.Cv*self.n*R*self.temperature
-    
-    def _generate_entropy(self):
-        self.entropy = self.n*R*np.log(self.volume)+self.Cv*np.log(self.temperature)
-
     def generate_data_from_dV(self,V2,show=False,steps=K):
         self.volume      = self.V1*np.ones(steps)
         self.pressure    = self.P1*np.ones(steps)
@@ -89,50 +96,11 @@ class IdealGas:
         return self.volume,self.pressure
     
     def generate_data_from_dP(self,P2,show=False,steps=K):
-        self.volume      = self.V1*np.ones(steps)
-        self.pressure    = self.P1*np.ones(steps)
-        self.temperature = self.T1*np.ones(steps)
-        self._generate_extra_data(show)
-        return self.volume,self.pressure
+        return self.generate_data_from_dV(self.V1,show=show,steps=steps)
     
-    def generate_data_from_dT(self,T2=None,show=False,steps=K):
-        self.volume      = self.V1*np.ones(steps)
-        self.pressure    = self.P1*np.ones(steps)
-        self.temperature = self.T1*np.ones(steps)
-        self._generate_extra_data(show)
-        return self.volume,self.pressure
+    def generate_data_from_dT(self,T2,show=False,steps=K):  
+        return self.generate_data_from_dV(self.V1,show=show,steps=steps)
     
-    def _generate_rms_speed(self):
-        self.rms_speed = np.sqrt(3*self.temperature*R/self.molar_mass)
-
-    def generate_particle_density(self):
-        self.nv = self.n*6.022e23/self.volume
-
-    def _generate_atomic_mass(self):
-        assert self.molar_mass != None, "molar_mass må være definert"
-        self.atomic_mass = self.molar_mass/6.022e23
-    
-    def _generate_mean_free_path(self):
-        self.mean_free_path = 1/(np.sqrt(2)*np.pi*self.diameter**2*self.nv)
-
-    def _generate_mean_free_time(self):
-        assert self.rms_speed != None and self.mean_free_path != None, "rms_speed eller mean_free_path er ikke definert"
-        self.mean_free_time = self.mean_free_path/self.rms_speed
-
-    def _generate_extra_data(self,show):
-        self._generate_internal_energy()
-        self._generate_entropy()
-        self._is_ideal()
-        if self.molar_mass != None:
-            self._generate_rms_speed()
-            self.generate_particle_density()
-            self._generate_atomic_mass()
-            self._generate_mean_free_path()
-            self._generate_mean_free_time()
-            
-
-        if show: self._plot_PV()
-
     def maxwell_boltzmann_speed_distribution(self,T=None):
         if T == None:
             T = np.max(self.temperature)
@@ -141,14 +109,63 @@ class IdealGas:
         v = np.linspace(v_max-3*standard_deviation,v_max+3*standard_deviation,1000)
         return 4/np.sqrt(np.pi)*(self.atomic_mass/(k*T))**(3/2)*v**2*np.exp(-self.atomic_mass*v**2/(2*k*T))
     
-    def _plot_PV(self):
-        plt.plot(self.volume,self.pressure)
-        plt.xlabel("Volum [m^3]")
-        plt.ylabel("Trykk [Pa]")
+    def calculate_work_done_by(self):
+        self.work_done_by = self.P1*(self.volume-self.V1)
+        return self.work_done_by
+    
+    def calculate_heat_absorbed(self):
+        self.heat_absorbed = self.n*(self.Cv+1)*R*(self.temperature-self.T1)
+        return self.heat_absorbed
+
+    def _show_picture(self,save=False,name=None,xlabel=None,ylabel=None,type=""):
         plt.grid()
-        plt.title(self.title)
-        plt.savefig(f"data/{self.title}_{self.n}.png")
+        plt.legend()
+        plt.title(f"{self.title}")
+        if xlabel != None and ylabel != None:
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
+        # we want to save the fig with the date as a name
+        
+        if save and name==None: 
+            now = datetime.datetime.now()
+            plt.savefig(f"{self.title}_{type}_{now.strftime('%Y_%m_%d')}.png",dpi=1024)
+        elif save: plt.savefig(f"{name}.png",dpi=1024)
         plt.show()
+
+    def plot_PV(self,save=False,name=None):
+        plt.plot(self.volume,self.pressure,label=self.title)
+        plt.scatter(self.volume[0],self.pressure[0],label="Startpunkt")
+        plt.scatter(self.volume[-1],self.pressure[-1],label="Sluttpunkt")
+        self._show_picture(save,name,"Volum [m^3]", "Trykk [Pa]","PV")
+
+    def plot_PT(self,save=False,name=None):
+        plt.plot(self.temperature,self.pressure,label=self.title)
+        plt.scatter(self.temperature[0],self.pressure[0],label="Startpunkt")
+        plt.scatter(self.temperature[-1],self.pressure[-1],label="Sluttpunkt")
+        self._show_picture(save,name,"Temperatur [K]", "Trykk [Pa]", "PT")
+
+    def plot_VT(self,save=False,name=None):
+        plt.plot(self.temperature,self.volume,label=self.title)
+        plt.scatter(self.temperature[0],self.volume[0],label="Startpunkt")
+        plt.scatter(self.temperature[-1],self.volume[-1],label="Sluttpunkt")
+        self._show_picture(save,name,"Temperatur [K]", "Volum [m^3]", "VT")
+
+    def plot_ST(self,save=False,name=None):
+        plt.plot(self.temperature,self.entropy,label=self.title)
+        plt.scatter(self.temperature[0],self.entropy[0],label="Startpunkt")
+        plt.scatter(self.temperature[-1],self.entropy[-1],label="Sluttpunkt")
+        self._show_picture(save,name,"Temperatur [K]", "Entropi [J/K]", "ST")
+
+    def plot_PVT(self,save=False,name=None):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot(self.volume,self.pressure,self.temperature,label=self.title)
+        ax.scatter(self.volume[0],self.pressure[0],self.temperature[0],label="Startpunkt")
+        ax.scatter(self.volume[-1],self.pressure[-1],self.temperature[-1],label="Sluttpunkt")
+        ax.set_xlabel("Volum [m^3]")
+        ax.set_ylabel("Trykk [Pa]")
+        ax.set_zlabel("Temperatur [K]")
+        self.show_picture(save,name,type="PVT")
 
     def _find_missing(self):
         assert (self.P1 != None) + (self.V1 != None) + (self.T1 != None) + (self.n != None) > 2, "Tre av P1,V1,T1 eller n må være definert"
@@ -173,11 +190,6 @@ class Isothermal(IdealGas):
         self.title = "Isotermisk prosess"
         self._find_missing()
 
-    def calculate_work_done_by(self):
-        self.work_done_by = self.n*R*self.T1*np.log(self.volume[-1]/self.volume[0])
-        self.heat_absorbed = self.work_done_by
-        return self.work_done_by
-    
     def calculate_heat_absorbed(self):
         self.heat_absorbed = self.calculate_work_done_by()
         return self.heat_absorbed
@@ -201,14 +213,6 @@ class Isobaric(IdealGas):
         self.title = "Isobar prosess"
         self._find_missing()
     
-    def calculate_work_done_by(self):
-        self.work_done_by = self.P1*(self.volume[-1]-self.volume[0])
-        return self.work_done_by
-    
-    def calculate_heat_absorbed(self):
-        self.heat_absorbed = self.n*(self.Cv+1)*R*(self.temperature[-1]-self.temperature[0])
-        return self.heat_absorbed
-    
     def generate_data_from_dV(self,V2,show=False, steps = K):
         self.volume = np.linspace(self.V1,V2,steps)
         self.temperature = self.T(self.P1,self.volume)
@@ -231,10 +235,6 @@ class Isochoric(IdealGas):
     def calculate_work_done_by(self):
         self.work_done_by = 0
         return self.work_done_by
-    
-    def calculate_heat_absorbed(self):
-        self.heat_absorbed = self.n*self.Cv*R*(self.temperature[-1]-self.temperature[0])
-        return self.heat_absorbed
     
     def generate_data_from_dT(self,T2,show=False, steps = K):
         self.temperature = np.linspace(self.T1,T2,steps)
@@ -282,12 +282,8 @@ class Adiabatic(IdealGas):
         return self.V1*(self.T1/T2)**(1/(self.gamma-1))
     
     def calculate_heat_absorbed(self):
-        self.heat_absorbed = 0
+        self.heat_absorbed = np.zeros(len(self.volume))
         return self.heat_absorbed
-    
-    def calculate_work_done_by(self):
-        self.work_done_by = self.Cv * self.n * R * (self.temperature[0]-self.temperature[-1])
-        return self.work_done_by
     
     def generate_data_from_dV(self,V2,show=False, steps = K):
         self.volume = np.linspace(self.V1,V2,steps)
