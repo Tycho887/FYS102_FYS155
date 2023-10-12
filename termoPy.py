@@ -171,7 +171,7 @@ class IdealGas:
         ax.set_xlabel("Volum [m^3]")
         ax.set_ylabel("Trykk [Pa]")
         ax.set_zlabel("Temperatur [K]")
-        self.show_picture(save,name,type="PVT")
+        self._show_picture(save,name,type="PVT")
 
     def _find_missing(self):
         assert (self.P1 != None) + (self.V1 != None) + (self.T1 != None) + (self.n != None) > 2, "Tre av P1,V1,T1 eller n må være definert"
@@ -388,16 +388,6 @@ class Cycle:
                 self.find_missing_variables(process,system_state)
                 self.processes.append(process)
 
-
-    def _plot_PV(self):
-        for process in self.processes:
-            plt.plot(process.volume,process.pressure,label=process.title)
-        plt.legend()
-        plt.xlabel("Volum [m^3]")
-        plt.ylabel("Trykk [Pa]")
-        plt.grid()
-        plt.title(self.title)
-        plt.show()
     
     def _calculate_work_done_by(self):
         for process in self.processes:

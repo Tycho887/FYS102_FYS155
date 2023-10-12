@@ -10,7 +10,7 @@ D = TP.Adiabatic(n=IS["n"],V1=IS["V"],T1=IS["T"],monatomic=True)
 D.generate_data_from_dP(2*IS["P"])
 C.generate_data_from_dT(1.25*IS["T"])
 
-D.plot_PV()
+D.plot_ST()
 #C.plot_VT(save=True)
 
 print(C.temperature)
