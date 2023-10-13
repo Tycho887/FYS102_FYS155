@@ -9,6 +9,9 @@ def __chceck_consisency(process,type):
         assert (np.mean(process.consistency)) < 1e-10, "Consistency is not zero"
         print(f"{type} method is consistent. max inconsistency: {np.max(process.consistency):.2e}")
 
+def test_process_methods(process):
+    pass
+
 def __test_processes(processes):
     for process in processes:
         print("Testing",process.title)
